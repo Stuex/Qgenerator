@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Question Generator</title>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        /* CSS Styling */
+        :root {
+            --bg-color: #000000;
+            --text-color: #FFFFFF;
+            --border-style: 1px solid #FFFFFF;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            line-height: 1.5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .input-section, .results-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        textarea {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: var(--border-style);
+            padding: 12px;
+            font-size: 1rem;
+            resize: vertical;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-width: 2px;
+        }
+
+        button {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: var(--border-style);
+            padding: 12px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button:hover {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Card Layout */
+        .cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .card {
+            border: var(--border-style);
+            padding: 15px;
+            background-color: var(--bg-color);
+        }
+
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .card p {
+            margin: 0;
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        #loadingIndicator {
+            text-align: center;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Study Question Generator</h1>
+        
+        <div class="input-section">
+            <textarea id="inputText" rows="6" placeholder="Paste your study paragraph here..."></textarea>
+            <button id="generateBtn">Generate Questions</button>
+        </div>
+
+        <div id="loadingIndicator" class="hidden">Generating questions...</div>
+
+        <div class="results-section hidden" id="resultsSection">
+            <div id="cardsContainer" class="cards-container">
+                <!-- Generated cards will be injected here -->
+            </div>
+            <button id="downloadBtn">Download Excel</button>
+        </div>
+    </main>
+
+    <script>
+        // JavaScript Logic
+        let generatedData = [];
+
+        const inputText = document.getElementById('inputText');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultsSection = document.getElementById('resultsSection');
+        const cardsContainer = document.getElementById('cardsContainer');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        generateBtn.addEventListener('click', handleGenerate);
+        downloadBtn.addEventListener('click', exportToExcel);
+
+        async function handleGenerate() {
+            const text = inputText.value.trim();
+            if (!text) {
+                alert('Please enter some text to generate questions.');
+                return;
+            }
+
+            generateBtn.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+
+            try {
+                generatedData = await mockApiCall(text);
+                renderCards(generatedData);
+                resultsSection.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error generating questions:', error);
+                alert('Failed to generate questions. Please try again.');
+            } finally {
+                generateBtn.disabled = false;
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        function mockApiCall(context) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const mockResponse = [
+                        {
+                            id: 1,
+                            question: "What is the primary subject of the provided text?",
+                            answer: "The text discusses the core concepts outlined in the user's input."
+                        },
+                        {
+                            id: 2,
+                            question: "Identify one key factual claim made in the paragraph.",
+                            answer: "A placeholder answer demonstrating the structure of the JSON output."
+                        },
+                        {
+                            id: 3,
+                            question: "How can this information be applied in a practical scenario?",
+                            answer: "It can be exported to Excel for further study and distribution."
+                        }
+                    ];
+                    resolve(mockResponse);
+                }, 1500);
+            });
+        }
+
+        function renderCards(data) {
+            cardsContainer.innerHTML = ''; 
+
+            data.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                const questionEl = document.createElement('h3');
+                questionEl.textContent = `Q: ${item.question}`;
+                
+                const answerEl = document.createElement('p');
+                answerEl.textContent = `A: ${item.answer}`;
+
+                card.appendChild(questionEl);
+                card.appendChild(answerEl);
+                cardsContainer.appendChild(card);
+            });
+        }
+
+        function exportToExcel() {
+            if (!generatedData || generatedData.length === 0) {
+                alert("No data available to download.");
+                return;
+            }
+
+            const workbook = XLSX.utils.book_new();
+            
+            const exportData = generatedData.map(item => ({
+                Question: item.question,
+                Answer: item.answer
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            
+            const wscols = [
+                {wch: 50}, 
+                {wch: 50}  
+            ];
+            worksheet['!cols'] = wscols;
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Study Questions");
+
+            XLSX.writeFile(workbook, "Generated_Study_Questions.xlsx");
+        }
+    </script>
+</body>
+</html>
